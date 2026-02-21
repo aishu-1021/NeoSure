@@ -1,34 +1,36 @@
-import { useState, useEffect } from 'react';
-import { Patient, Referral, cn } from '../types';
+import { useState } from 'react';
+import { Patient, cn } from '../types';
 import { MOCK_PATIENTS } from '../constants';
 import { Card, Button, Input, Badge } from '../components/UI';
 import { Search, UserPlus, ShieldPlus, Users, AlertTriangle, Calendar, ChevronRight } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 export default function Directory() {
+  const navigate = useNavigate();
   const [patients, setPatients] = useState<Patient[]>(MOCK_PATIENTS);
   const [search, setSearch] = useState('');
 
-  const filteredPatients = patients.filter(p => 
-    p.name.toLowerCase().includes(search.toLowerCase()) || 
+  const filteredPatients = patients.filter(p =>
+    p.name.toLowerCase().includes(search.toLowerCase()) ||
     p.rchId.includes(search)
   );
 
   const stats = [
-    { label: "Today's Visits", value: 12, icon: Calendar, color: 'bg-primary', badge: 'TODAY' },
-    { label: "High Risk Patients", value: 5, icon: AlertTriangle, color: 'bg-primary/90', badge: 'PRIORITY' },
-    { label: "Registered Patients", value: 128, icon: Users, color: 'bg-white', badge: 'TOTAL', textColor: 'text-primary' },
+    { label: "Today's Visits",      value: 12,  icon: Calendar,      color: 'bg-primary',    badge: 'TODAY' },
+    { label: "High Risk Patients",  value: 5,   icon: AlertTriangle, color: 'bg-primary/90', badge: 'PRIORITY' },
+    { label: "Registered Patients", value: 128, icon: Users,         color: 'bg-white',      badge: 'TOTAL', textColor: 'text-primary' },
   ];
 
   return (
     <div className="max-w-4xl mx-auto w-full px-4 py-8">
+
       {/* Search */}
       <div className="mb-10">
         <div className="relative group">
           <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
             <Search className="text-primary w-6 h-6 group-focus-within:scale-110 transition-transform" />
           </div>
-          <Input 
+          <Input
             className="h-16 pl-14 pr-6 bg-white shadow-xl shadow-primary/5 text-lg"
             placeholder="Search by Name, RCH ID, or Phone..."
             value={search}
@@ -79,18 +81,18 @@ export default function Directory() {
                 <div className="flex items-center gap-4">
                   <div className={cn(
                     "size-12 rounded-full flex items-center justify-center border-2 relative",
-                    patient.riskLevel === 'RED' ? 'bg-red-100 text-red-600 border-red-500' :
+                    patient.riskLevel === 'RED'   ? 'bg-red-100 text-red-600 border-red-500' :
                     patient.riskLevel === 'AMBER' ? 'bg-amber-100 text-amber-600 border-amber-500' :
-                    'bg-green-100 text-green-600 border-green-500'
+                                                    'bg-green-100 text-green-600 border-green-500'
                   )}>
-                    {patient.riskLevel === 'RED' ? <AlertTriangle className="w-6 h-6" /> : 
-                     patient.riskLevel === 'AMBER' ? <AlertTriangle className="w-6 h-6" /> :
-                     <ShieldPlus className="w-6 h-6" />}
+                    {patient.riskLevel === 'GREEN'
+                      ? <ShieldPlus className="w-6 h-6" />
+                      : <AlertTriangle className="w-6 h-6" />}
                     <div className={cn(
                       "absolute -top-1 -right-1 size-3 rounded-full border-2 border-white",
-                      patient.riskLevel === 'RED' ? 'bg-red-500' :
+                      patient.riskLevel === 'RED'   ? 'bg-red-500' :
                       patient.riskLevel === 'AMBER' ? 'bg-amber-500' :
-                      'bg-green-500'
+                                                      'bg-green-500'
                     )} />
                   </div>
                   <div>
@@ -115,13 +117,18 @@ export default function Directory() {
         ))}
       </div>
 
-      {/* FAB */}
+      {/* FAB — New Registration */}
       <div className="fixed bottom-8 right-8 z-50">
-        <Button size="xl" className="px-8 py-4 shadow-2xl shadow-primary/40 transform hover:scale-105">
+        <Button
+          size="xl"
+          className="px-8 py-4 shadow-2xl shadow-primary/40 transform hover:scale-105"
+          onClick={() => navigate('/register')}
+        >
           <UserPlus className="w-6 h-6 mr-3" />
           New Registration
         </Button>
       </div>
+
     </div>
   );
 }

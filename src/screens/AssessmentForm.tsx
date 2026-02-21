@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, Button, Input, Badge } from '../components/UI';
 import { User, Activity, Heart, FlaskConical, Baby, AlertCircle, Save, ArrowRight, ChevronLeft, Minus, Plus } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../types';
 
 export default function AssessmentForm() {

@@ -6,6 +6,7 @@ import TeleConsultation from './screens/TeleConsultation';
 import LiveConsultation from './screens/LiveConsultation';
 import ReferralTracker from './screens/ReferralTracker';
 import PatientHistory from './screens/PatientHistory';
+import NewRegisteration from './screens/NewRegisteration';
 import { Home, Users, Activity, Settings, Bell, Menu } from 'lucide-react';
 import { cn } from './types';
 
@@ -87,6 +88,7 @@ export default function App() {
             <Route path="/consultation/:id" element={<TeleConsultation />} />
             <Route path="/live-consultation" element={<LiveConsultation />} />
             <Route path="/referrals" element={<ReferralTracker />} />
+            <Route path="/register" element={<NewRegisteration />} />
           </Routes>
         </main>
       </div>

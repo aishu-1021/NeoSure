@@ -1,7 +1,7 @@
 import { useParams, Link } from 'react-router-dom';
 import { Card, Button, Badge } from '../components/UI';
 import { AlertTriangle, CheckCircle, Video, Printer, FileText, Calendar, User, FlaskConical, Activity } from 'lucide-react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../types';
 
 export default function AssessmentResult() {
