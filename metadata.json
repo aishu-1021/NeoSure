@@ -1,0 +1,5 @@
+{
+  "name": "NeoSure ANC",
+  "description": "AI-powered maternal health risk assessment and integrated referral network for frontline health workers.",
+  "requestFramePermissions": ["camera", "microphone"]
+}
