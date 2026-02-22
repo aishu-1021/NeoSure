@@ -1,11 +1,14 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { cn } from '../types';
 
 export default function NewRegisteration() {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [errorMessage, setErrorMessage] = useState('');
 
   const [f, setF] = useState({
     fullName: '', phone: '', rchId: '', age: '', lmpDate: '',
@@ -27,7 +30,86 @@ export default function NewRegisteration() {
     if (diffDays < 0) return null;
     const weeks = Math.floor(diffDays / 7);
     const days = diffDays % 7;
-    return `${weeks} Weeks, ${days} Days`;
+    return { weeks, days, display: `${weeks} Weeks, ${days} Days` };
+  };
+
+  // ── Parse BP string "120/80" → systolic / diastolic ──
+  const parseBP = (bp: string) => {
+    const parts = bp.split('/');
+    if (parts.length === 2) {
+      return { systolic: parseInt(parts[0]) || null, diastolic: parseInt(parts[1]) || null };
+    }
+    return { systolic: null, diastolic: null };
+  };
+
+  // ── Save patient to MySQL via backend API ──
+  const handleCompleteRegistration = async () => {
+    if (!canComplete) return;
+
+    setIsSubmitting(true);
+    setSubmitStatus('idle');
+    setErrorMessage('');
+
+    const gestAge = getGestationalAge();
+    const bp = parseBP(f.baselineBP);
+
+    // Get the logged-in ANM worker ID from localStorage (set during login)
+    const anmId = localStorage.getItem('anc_worker_id') || 'ANM/KA/BLR/2024/0178';
+
+    const patientData = {
+      worker_id:              anmId,
+      full_name:              f.fullName,
+      phone_number:           f.phone,
+      rch_id:                 f.rchId,
+      age:                    parseInt(f.age),
+      lmp_date:               f.lmpDate,
+      gestational_age_weeks:  gestAge?.weeks || 0,
+
+      // Step 2
+      previous_lscs:          f.previousLSCS ? 1 : 0,
+      stillbirth_history:     f.stillbirthHistory ? 1 : 0,
+      chronic_hypertension:   f.chronicHypertension ? 1 : 0,
+      diabetes:               f.diabetesThyroid ? 1 : 0,
+      thyroid:                f.diabetesThyroid ? 1 : 0,
+      height_cm:              f.heightCm ? parseFloat(f.heightCm) : null,
+      weight_kg:              f.weightKg ? parseFloat(f.weightKg) : null,
+      baseline_bp_systolic:   bp.systolic,
+      baseline_bp_diastolic:  bp.diastolic,
+
+      // Step 3
+      twin_pregnancy:         f.twinPregnancy ? 1 : 0,
+      hiv_positive:           f.hivSyphilis ? 1 : 0,
+      syphilis_positive:      f.hivSyphilis ? 1 : 0,
+      severe_headache:        f.severeHeadache ? 1 : 0,
+      vaginal_bleeding:       f.vaginalBleeding ? 1 : 0,
+      blurred_vision:         f.blurredVision ? 1 : 0,
+      abdominal_pain:         f.abdominalPain ? 1 : 0,
+      swelling_of_feet:       f.swellingFeet ? 1 : 0,
+    };
+
+    try {
+      const response = await fetch('http://localhost:8080/api/patient', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(patientData),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        setSubmitStatus('success');
+        // Navigate to home after 2 seconds
+        setTimeout(() => navigate('/'), 2000);
+      } else {
+        setSubmitStatus('error');
+        setErrorMessage(result.error || 'Something went wrong. Please try again.');
+      }
+    } catch (err) {
+      setSubmitStatus('error');
+      setErrorMessage('Cannot connect to server. Make sure the backend is running on port 8080.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const Toggle = ({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) => (
@@ -136,7 +218,7 @@ export default function NewRegisteration() {
                 <div className="bg-primary/10 border border-primary/20 rounded-lg p-4 w-full flex items-center justify-between">
                   <div>
                     <p className="text-[10px] font-bold text-primary uppercase tracking-tighter">Estimated Gestational Age</p>
-                    <p className="text-lg font-bold text-primary">{gestAge || '— Weeks'}</p>
+                    <p className="text-lg font-bold text-primary">{gestAge?.display || '— Weeks'}</p>
                   </div>
                   <span className="text-3xl opacity-50">🤱</span>
                 </div>
@@ -237,7 +319,7 @@ export default function NewRegisteration() {
         </div>
 
         {/* Success Banner */}
-        {canComplete && step === 3 && (
+        {canComplete && step === 3 && submitStatus === 'idle' && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
             className="mt-8 flex items-center justify-center gap-3 bg-green-50 border border-green-100 p-4 rounded-xl"
           >
@@ -245,6 +327,37 @@ export default function NewRegisteration() {
             <p className="text-sm font-medium text-green-700">All baseline fields populated. Ready for Risk Analysis.</p>
           </motion.div>
         )}
+
+        {/* Saving Banner */}
+        {isSubmitting && (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+            className="mt-8 flex items-center justify-center gap-3 bg-blue-50 border border-blue-100 p-4 rounded-xl"
+          >
+            <span className="text-blue-500 text-xl animate-spin">⏳</span>
+            <p className="text-sm font-medium text-blue-700">Saving patient record to database...</p>
+          </motion.div>
+        )}
+
+        {/* Saved Successfully Banner */}
+        {submitStatus === 'success' && (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+            className="mt-8 flex items-center justify-center gap-3 bg-green-50 border border-green-200 p-4 rounded-xl"
+          >
+            <span className="text-green-500 text-xl">🎉</span>
+            <p className="text-sm font-medium text-green-700">Patient saved to database successfully! Redirecting...</p>
+          </motion.div>
+        )}
+
+        {/* Error Banner */}
+        {submitStatus === 'error' && (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+            className="mt-8 flex items-center justify-center gap-3 bg-red-50 border border-red-100 p-4 rounded-xl"
+          >
+            <span className="text-red-500 text-xl">❌</span>
+            <p className="text-sm font-medium text-red-700">{errorMessage}</p>
+          </motion.div>
+        )}
+
       </main>
 
       {/* Sticky Footer */}
@@ -271,13 +384,16 @@ export default function NewRegisteration() {
               </button>
             ) : (
               <button
-                onClick={() => canComplete && navigate('/')}
+                onClick={handleCompleteRegistration}
+                disabled={!canComplete || isSubmitting}
                 className={cn(
                   'flex-[2] sm:flex-none px-12 h-14 rounded-xl text-white font-bold shadow-lg transition-all flex items-center justify-center gap-2',
-                  canComplete ? 'bg-primary shadow-primary/30 hover:scale-[1.02]' : 'bg-slate-300 cursor-not-allowed'
+                  canComplete && !isSubmitting
+                    ? 'bg-primary shadow-primary/30 hover:scale-[1.02]'
+                    : 'bg-slate-300 cursor-not-allowed'
                 )}
               >
-                Complete Registration ›
+                {isSubmitting ? '⏳ Saving...' : '✅ Complete Registration ›'}
               </button>
             )}
           </div>
